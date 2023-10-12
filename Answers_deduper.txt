@@ -1,0 +1,66 @@
+*******************
+Define the problem:
+*******************
+
+During the PCR amplification step in the RNA-seq experimental workflow, often times we observe the presence of PCR duplicates which arises from the same template molecule 
+binding on the flowcell. These duplicates arise randomly or due to PCR amplification biases. Duplicates leads to a problem of overrepresentation of a particular template in the 
+genome/sequencing pool and can also create false positive variant calls. In big picture this can be a hindrance when studying genetic causes of disease, gene expression, 
+phylogenetic trees, SNP studies and lastly in the assembly of de-novo sequencing of non-model organisms (Ridge et. al, 2016). Hence, to reduce computational costs, memory 
+resources and human power it can be essential to remove PCR duplicates from the SAM file. 
+
+Below is a psuedocode for a reference based PCR duplicate removal tool software. Things that were considered for the duplicate removal in the SAM alignment before writing 
+the psuedocode were: a) Single end data b)Presence of 96 UMIs c) Start position (5') of the alignment d) Soft clipping e) Strandedness of the read (reverse 
+vs forward) and f) Chromosome number. All this information can be found in the 11 mandatory fields in a SAM file. Fields in 
+alignment line that I am working on to look for PCR duplicates are a) Flag (col 2), b) RNAME (col 3), c) POS (col 4), d) CIGAR (col 6), e) QNAME (col 1)
+
+########
+Function
+########
+
+def adjust_startpos(startpos: int, cigar: str): -> int 
+    '''Takes the the start position of a read and checks for presence of soft clipping - s in the CIGAR string'''
+    if CIGAR string starts with 'no. and S' and found on left side of the read: #use regex to look at cigar string
+        start_position = start position becomes POS value + the value before s
+    elif CIGAR string starts with 'no. and S' and found on right side of the read:
+        start_position = start position becomes POS value - the value before s
+    else:
+        continue
+    return start_position
+
+input: adjust_startpos(111, 14M) >>>> output: 111 
+input: adjust_startpos(111, 2S12M) >>>> output: 113
+
+def reverse_umi (qname: str): -> str
+    '''Takes UMI and reverses it'''
+    if umi is from read 4 takes it and reverses it
+    return nucleotidestring
+
+input: reverse_umi(AATTCCG) >>> output: CGGAATT
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Takes input sam file and gives output sam file with unique sequences")
+    parser.add_argument("-f", "--inputfile", help="Specify the input filename.", type = str)
+    parser.add_argument("-o", "--outputfile", help="Specify the output filename.", type = str)
+    return parser.parse_args()
+args = get_args()
+
+##########
+psuedocode
+##########
+
+1. Open the sam input file to read and the sam output file to write unique reads
+    2. Enter into a loop to read the already sorted sam file line by line
+    3. Remove the header (anything that starts with an @) and we are interested only in the alignment file which mostly starts with an N
+    4. Dissect the 11 mandatory fields in the alignment line using whitespace and grab only col1 (qname), col2 (bitwise flag), col3(Rname), col 4(POS), col6(CIGAR)
+    5. Look at the UMI using regex in field 1/QNAME - only get the chunk which has [A-Z+] string. Reverse the UMI using function from Read 4 (or index 2)
+        6. Once you have UMI check to see if present in STL96.txt (96 UMI sequences) if present move to the next column elif UMI is incorrect or errorness abort going to the 
+        next column and add UMI sequence in error correction list or delete that alignment read.
+           7. Work on bitwise flag Col 2 check for bitwise unmapped read (4) and secondary reads (256) if true/1 eliminate those reads and abort at this step else continue
+                8. look at the bitwise flag 16 to see for reverse = true/set. 
+                9. Now go to col 4 look at the start postion and col 6 for CIGAR string
+                    10. Apply the function adjust_startpos to adjust start position if softclipping in the cigar string present do this both for the reverse and forward sequence
+                    11. Now that you have checked everything that you needed to compare the start position
+                        12. If start position and col 3(i.e. Chromosome) in two alignment are same just pick one alignment and don't bother about the others.
+                            13. Put that chosen alignment in the deduped sam outputfile
+                        14. else start position and col 3 are unique and then put that read in the deduped sam outputfile
+15. Close both the input and output file  
