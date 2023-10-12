@@ -1,0 +1,11 @@
+Scenarios in the test input file and output file
+1) input: Unique read with error in UMI, output: no
+2) input: Alignment with 0 or * in the manadatory field (could try for all the 4 col intrested except qname), output: no 
+4) input: Bitwise flag (4 or 256) is true, output: no 
+4) input: Sequence that are PCR duplicate because of same start position and on the same chromosome, output: only one seq from here
+5) input: Sequence that are on the different chromosome with same start position, output: yes both sequences 
+6) input: Sequence that has soft clipping and unique sequence, output: yes 
+7) input: PCR duplicates that have soft clipping and same start position, output: only one sequence
+8) input: Sequence that is reverse stranded (bitwise flag 16 == True), output: yes
+9) input: Sequence with correct UMI and unique start position, CIGAR string, and chromosome, output: yes
+10) input: Sequence with correct UMI and unique sequence with adjusted soft clipping, output: yes
